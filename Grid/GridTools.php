@@ -5,13 +5,16 @@ class GridTools
 {
     protected function encode($input = array(), $funcs = array(), $level = 0)
     {
-
         foreach ($input as $key => $value) {
             if (is_array($value)) {
                 $ret = self::encode($value, $funcs, 1);
                 $input[$key] = $ret[0];
                 $funcs = $ret[1];
             } else {
+                if ($value instanceof \DateTime) {
+                    $value = $value->format('Y-m-d H:i:s');
+                }
+
                 if (strpos($value, 'function(') === 0 || strpos($value, 'var_') === 0) {
                     $func_key = "#" . uniqid() . "#";
                     $value = ltrim($value, 'var_');
