@@ -5,6 +5,7 @@ use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 use Doctrine\ORM\Query;
 use EPS\JqGridBundle\FilterMapper\FilterMapperFactory;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 
 //use Doctrine\ORM\Query;
 
@@ -20,11 +21,6 @@ class Grid extends GridTools
      * @var \Symfony\Component\DependencyInjection\Container
      */
     protected $container;
-
-    /**
-     * @var \Knp\Component\Pager\Paginator
-     */
-    protected $paginator;
 
     /**
      * @var \Symfony\Component\Routing\Router
@@ -103,7 +99,6 @@ class Grid extends GridTools
         $this->router = $this->container->get('router');
         $this->request = $this->container->get('request');
         $this->session = $this->request->getSession();
-        $this->paginator = $this->container->get('knp_paginator');
         $this->em = $this->container->get('doctrine.orm.entity_manager');
         $this->templating = $this->container->get('templating');
         $this->columns = array();
@@ -359,14 +354,18 @@ class Grid extends GridTools
                 $this->generateFilters();
             }
 
-            $query = $this->qb->getQuery();
+            $offset = ($page * $limit) - $limit;
+            $query = $this->qb->setFirstResult($offset)
+                              ->setMaxResults($limit)
+                              ->getQuery();
 
             if (null != $this->count) {
                 $query->setHint(\Knp\Component\Pager\Event\Subscriber\Paginate\Doctrine\ORM\QuerySubscriber::HINT_COUNT, $this->count);
             }
-            $pagination = $this->paginator->paginate($query->setHydrationMode(Query::HYDRATE_ARRAY), $page, $limit);
 
-            $nbRec = $pagination->getTotalItemCount();
+            $pagination = new Paginator($query);
+
+            $nbRec = count($pagination);
             if (null == $this->count) {
                 $this->count = $nbRec;
             }
